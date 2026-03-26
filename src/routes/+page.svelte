@@ -1,18 +1,30 @@
 <script lang="ts">
 	import { scanStore } from '$lib/stores/scanStore';
 	import { parseQR } from '$lib/utils/qrparser';
-	import { ScannerView, ScanItem, EmptyState, ActionBar } from '$lib/components/scanner';
+	import {
+		ScannerView,
+		ScanItem,
+		EmptyState,
+		ActionBar,
+		ApiSettings
+	} from '$lib/components/scanner';
 	import { Header, Toast } from '$lib/components/ui';
 
-	const API_URL = 'YOUR_APPS_SCRIPT_URL';
+	const DEFAULT_API_URL =
+		'https://script.google.com/macros/s/AKfycbwS_q_E_d3Fqsmsj2jM7D0xkmT63ZQIDSeIMwzV3BooZY94a7cNOs2Le8B1iLtupL0v/exec';
 
+	let apiUrl = $state(DEFAULT_API_URL);
 	let isSubmitting = $state(false);
 	let toastMessage = $state('');
 	let toastType = $state<'success' | 'error' | 'warning'>('success');
 	let showToast = $state(false);
 
+	function handleApiChange(newUrl: string) {
+		apiUrl = newUrl;
+	}
+
 	function handleScan(text: string) {
-		console.log('Scanned:', text); // Debug
+		console.log('Scanned:', text);
 
 		const parsed = parseQR(text);
 		if (!parsed) {
@@ -21,11 +33,9 @@
 		}
 
 		const item = { ...parsed, raw: text };
-
-		// Langsung add, biar store yang handle logic-nya
 		const result = scanStore.add(item);
 
-		console.log('Add result:', result); // Debug
+		console.log('Add result:', result);
 
 		if (result.success) {
 			if (result.isRescanned) {
@@ -48,12 +58,20 @@
 	async function submitData() {
 		if (!$scanStore.length) return;
 
+		if (!apiUrl) {
+			displayToast('Please configure API URL first', 'error');
+			return;
+		}
+
 		isSubmitting = true;
 		try {
-			const res = await fetch(API_URL, {
+			console.log(JSON.stringify({ data: $scanStore }));
+
+			const res = await fetch(apiUrl, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ data: $scanStore })
+				body: JSON.stringify({ data: $scanStore }),
+				mode: 'cors',
+				redirect: 'follow'
 			});
 
 			if (!res.ok) throw new Error('Network error');
@@ -72,6 +90,9 @@
 
 <div class="mx-auto max-w-lg space-y-6 p-4 pb-24">
 	<Header title="QR Scanner" subtitle="Scan dan kirim data dengan mudah" />
+
+	<!-- API Settings - Collapsible -->
+	<ApiSettings defaultUrl={DEFAULT_API_URL} onChange={handleApiChange} />
 
 	<ScannerView onScan={handleScan} />
 
@@ -120,7 +141,7 @@
 				cell={item.cell}
 				pasok={item.pasok}
 				onDelete={(idx) => {
-					console.log('Remove index:', idx); // Debug
+					console.log('Remove index:', idx);
 					scanStore.remove(idx);
 				}}
 			/>

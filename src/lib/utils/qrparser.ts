@@ -4,17 +4,33 @@ interface ParsedQR {
 	pasok: string;
 }
 
-export function parseQR(text: string): ParsedQR | null {
+export function parseQR(text: string) {
 	try {
-		const parts = text.split('\n');
-		if (parts.length >= 3) {
-			return {
-				hari: parts[0],
-				cell: parts[1],
-				pasok: parts[2]
-			};
-		}
-		return null;
+		const lines = text.split('\n');
+
+		const data: any = {};
+
+		lines.forEach((line) => {
+			const [key, value] = line.split(':').map((s) => s.trim());
+
+			if (!key || !value) return;
+
+			switch (key.toUpperCase()) {
+				case 'HARI':
+					data.hari = Number(value);
+					break;
+				case 'CELL':
+					data.cell = value;
+					break;
+				case 'PASOK':
+					data.pasok = value;
+					break;
+			}
+		});
+
+		if (!data.hari || !data.cell || !data.pasok) return null;
+
+		return data;
 	} catch {
 		return null;
 	}
