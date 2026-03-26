@@ -37,7 +37,7 @@
 				Mengirim...
 			</span>
 		{:else}
-			<span class="flex items-center justify-center gap-2">
+			<span class="flex cursor-pointer items-center justify-center gap-2">
 				Kirim Data
 				{#if count > 0}
 					<span class="rounded-full bg-white/20 px-2 py-0.5 text-xs">{count}</span>

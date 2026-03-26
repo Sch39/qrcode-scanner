@@ -48,8 +48,12 @@
 		</div>
 
 		<button
-			onclick={() => onDelete(index)}
-			class="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+			type="button"
+			onclick={() => {
+				console.log('Deleting index:', index); // Debug
+				onDelete(index);
+			}}
+			class="cursor-pointer rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 active:scale-95"
 			aria-label="Hapus item"
 		>
 			<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

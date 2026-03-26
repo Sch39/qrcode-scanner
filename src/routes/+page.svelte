@@ -8,20 +8,37 @@
 
 	let isSubmitting = $state(false);
 	let toastMessage = $state('');
-	let toastType = $state<'success' | 'error'>('success');
+	let toastType = $state<'success' | 'error' | 'warning'>('success');
 	let showToast = $state(false);
 
 	function handleScan(text: string) {
+		console.log('Scanned:', text); // Debug
+
 		const parsed = parseQR(text);
 		if (!parsed) {
 			displayToast('Format QR tidak valid', 'error');
 			return;
 		}
-		scanStore.add({ ...parsed, raw: text });
-		displayToast('QR Code berhasil discan', 'success');
+
+		const item = { ...parsed, raw: text };
+
+		// Langsung add, biar store yang handle logic-nya
+		const result = scanStore.add(item);
+
+		console.log('Add result:', result); // Debug
+
+		if (result.success) {
+			if (result.isRescanned) {
+				displayToast('Data pernah discan sebelumnya, ditambahkan kembali', 'warning');
+			} else {
+				displayToast('QR Code berhasil discan', 'success');
+			}
+		} else {
+			displayToast('Data sudah ada di list!', 'warning');
+		}
 	}
 
-	function displayToast(message: string, type: 'success' | 'error') {
+	function displayToast(message: string, type: 'success' | 'error' | 'warning') {
 		toastMessage = message;
 		toastType = type;
 		showToast = true;
@@ -96,13 +113,16 @@
 
 		<EmptyState count={$scanStore.length} />
 
-		{#each $scanStore as item, i (i)}
+		{#each $scanStore as item, i (item.raw)}
 			<ScanItem
 				index={i}
 				hari={item.hari}
 				cell={item.cell}
 				pasok={item.pasok}
-				onDelete={(idx) => scanStore.remove(idx)}
+				onDelete={(idx) => {
+					console.log('Remove index:', idx); // Debug
+					scanStore.remove(idx);
+				}}
 			/>
 		{/each}
 	</div>

@@ -21,7 +21,7 @@ export class ScannerService {
 				onSuccess(decodedText);
 			},
 			(errorMessage) => {
-				console.error('QR Code scan error:', errorMessage);
+				// console.error('QR Code scan error:', errorMessage);
 			}
 		);
 	}
