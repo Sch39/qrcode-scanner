@@ -9,7 +9,7 @@ export default defineConfig({
 	},
 	build: {
 		commonjsOptions: {
-			include: ['html5-qrcode'],
+			include: [/html5-qrcode/, /node_modules/],
 			transformMixedEsModules: true
 		}
 	}

@@ -1,26 +1,18 @@
-let Html5QrcodeLib: any;
+import { Html5Qrcode } from 'html5-qrcode';
 
 export class ScannerService {
-	private html5QrCode: any = null;
+	private html5QrCode: Html5Qrcode | null = null;
 	private isScanning = false;
 	private elementId: string | null = null;
 
-	private async ensureLoaded() {
-		if (!Html5QrcodeLib) {
-			const mod = await import('html5-qrcode');
-			Html5QrcodeLib = mod.Html5Qrcode;
-		}
-	}
-
 	async start(elementId: string, onScan: (text: string) => void): Promise<void> {
-		await this.ensureLoaded();
 		try {
 			// Prevent double start
 			if (this.isScanning) return;
 
 			// Create instance hanya sekali
 			if (!this.html5QrCode || this.elementId !== elementId) {
-				this.html5QrCode = new Html5QrcodeLib(elementId);
+				this.html5QrCode = new Html5Qrcode(elementId);
 				this.elementId = elementId;
 			}
 
