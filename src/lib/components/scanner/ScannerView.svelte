@@ -1,64 +1,136 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { fade, scale } from 'svelte/transition';
 	import { ScannerService } from '$lib/utils/scanner';
 
 	interface Props {
 		onScan: (text: string) => void;
+		autoStart?: boolean;
 	}
 
-	let { onScan }: Props = $props();
+	let { onScan, autoStart = false }: Props = $props();
 
 	let scanner = new ScannerService();
-	let isLoading = $state(true);
+
+	let isLoading = $state(false);
 	let hasError = $state(false);
+	let isActive = $state(false);
+	let isInitializing = $state(false);
+	let readerElement: HTMLDivElement | null = null;
+	let lastScanTime = 0;
+
+	async function startScanner() {
+		if (isActive || isInitializing || !readerElement) return;
+
+		isInitializing = true;
+		isLoading = true;
+		hasError = false;
+
+		try {
+			await scanner.start(readerElement.id || 'qr-reader', (text) => {
+				const now = Date.now();
+				if (now - lastScanTime < 1000) return;
+				lastScanTime = now;
+
+				onScan(text);
+			});
+
+			isActive = true;
+		} catch (err) {
+			console.error(err);
+			hasError = true;
+			isActive = false;
+		} finally {
+			isLoading = false;
+			isInitializing = false;
+		}
+	}
+
+	async function stopScanner() {
+		await scanner.stop();
+		isActive = false;
+	}
+
+	async function toggleCamera() {
+		if (isInitializing) return;
+
+		if (isActive) {
+			await stopScanner();
+		} else {
+			await new Promise((r) => setTimeout(r, 200)); // 🔥 penting
+			await startScanner();
+		}
+	}
 
 	onMount(() => {
-		try {
-			scanner.start('reader', onScan);
-			isLoading = false;
-		} catch {
-			hasError = true;
-			isLoading = false;
+		if (readerElement && !readerElement.id) {
+			readerElement.id = 'qr-reader';
+		}
+
+		if (autoStart) {
+			setTimeout(startScanner, 100);
 		}
 	});
 
-	onDestroy(() => {
-		scanner.stop();
+	onDestroy(async () => {
+		await scanner.destroy();
 	});
 </script>
 
-<div class="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-900 shadow-lg">
-	{#if isLoading}
-		<div class="absolute inset-0 flex items-center justify-center bg-slate-800">
+<div class="overflow-hidden rounded-2xl bg-slate-900 shadow-lg">
+	<!-- Header -->
+	<div class="flex items-center justify-between border-b border-slate-700/50 bg-slate-800/50 p-3">
+		<div class="flex items-center gap-2">
 			<div
-				class="h-8 w-8 animate-spin rounded-full border-4 border-slate-600 border-t-blue-500"
+				class="h-2 w-2 rounded-full {isActive ? 'animate-pulse bg-emerald-500' : 'bg-slate-500'}"
 			></div>
+			<span class="text-xs text-slate-300">
+				{isActive ? 'Camera Aktif' : 'Camera Nonaktif'}
+			</span>
 		</div>
-	{/if}
 
-	{#if hasError}
-		<div class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400">
-			<svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-				/>
-			</svg>
-			<span class="text-sm">Kamera tidak tersedia</span>
-		</div>
-	{/if}
+		<button
+			onclick={toggleCamera}
+			disabled={isInitializing}
+			class="cursor-pointer rounded-lg px-3 py-1.5 text-xs {isActive
+				? 'bg-red-500/20 text-red-400'
+				: 'bg-emerald-500/20 text-emerald-400'}"
+		>
+			{isInitializing ? 'Memulai...' : isActive ? 'Matikan' : 'Nyalakan'}
+		</button>
+	</div>
 
-	<div id="reader" class="h-full w-full"></div>
+	<div class="relative h-64 w-full bg-slate-950 sm:h-80">
+		<!-- Camera container (TIDAK DI-HIDE) -->
+		<div
+			id="qr-reader"
+			bind:this={readerElement}
+			class="h-full w-full"
+			style="opacity: {isActive ? 1 : 0};"
+		></div>
 
-	<!-- Scanner Frame Overlay -->
-	<div class="pointer-events-none absolute inset-0">
-		<div class="absolute top-1/2 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2">
-			<div class="absolute top-0 left-0 h-6 w-6 border-t-4 border-l-4 border-blue-500"></div>
-			<div class="absolute top-0 right-0 h-6 w-6 border-t-4 border-r-4 border-blue-500"></div>
-			<div class="absolute bottom-0 left-0 h-6 w-6 border-b-4 border-l-4 border-blue-500"></div>
-			<div class="absolute right-0 bottom-0 h-6 w-6 border-r-4 border-b-4 border-blue-500"></div>
-		</div>
+		<!-- Overlay -->
+		{#if isActive}
+			<div transition:scale class="pointer-events-none absolute inset-0">
+				<div
+					class="absolute top-1/2 left-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 border-4 border-blue-500"
+				></div>
+			</div>
+		{/if}
+
+		<!-- Loading -->
+		{#if isLoading}
+			<div class="absolute inset-0 flex items-center justify-center bg-slate-900">
+				<span class="text-sm text-slate-400">Memuat camera...</span>
+			</div>
+		{/if}
+
+		<!-- Error -->
+		{#if hasError}
+			<div class="absolute inset-0 flex flex-col items-center justify-center text-red-400">
+				<p>Camera error</p>
+				<button onclick={startScanner}>Retry</button>
+			</div>
+		{/if}
 	</div>
 </div>

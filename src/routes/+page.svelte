@@ -93,7 +93,7 @@
 	<!-- API Settings - Collapsible -->
 	<ApiSettings defaultUrl={DEFAULT_API_URL} onChange={handleApiChange} />
 
-	<ScannerView onScan={handleScan} />
+	<ScannerView onScan={handleScan} autoStart={true} />
 
 	{#if $scanStore.length > 0}
 		<div class="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm">
