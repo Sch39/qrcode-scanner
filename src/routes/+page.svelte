@@ -10,8 +10,7 @@
 	} from '$lib/components/scanner';
 	import { Header, Toast } from '$lib/components/ui';
 
-	const DEFAULT_API_URL =
-		'https://script.google.com/macros/s/AKfycbwS_q_E_d3Fqsmsj2jM7D0xkmT63ZQIDSeIMwzV3BooZY94a7cNOs2Le8B1iLtupL0v/exec';
+	const DEFAULT_API_URL = '';
 
 	let apiUrl = $state(DEFAULT_API_URL);
 	let isSubmitting = $state(false);
